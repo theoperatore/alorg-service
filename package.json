@@ -2,7 +2,7 @@
   "name": "alorg-service",
   "version": "1.0.0",
   "description": "http/2 + mDNS for zeroconf microservices running within the same local network",
-  "main": "src/alorg-service.js",
+  "main": "src/index.js",
   "repository": "git@github.com:theoperatore/alorg-service.git",
   "author": "Alex Petersen <theoperatore@gmail.com>",
   "license": "MIT",
@@ -12,8 +12,19 @@
   },
   "scripts": {
     "postinstall": "yarn audit",
-    "lint": "eslint .",
-    "format": "prettier --single-quote true --trailing-comma es5 --write \"src/*.js\""
+    "lint": "eslint ."
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "pretty-quick --staged"
+    }
+  },
+  "prettier": {
+    "printWidth": 120,
+    "trailingComma": "all",
+    "tabWidth": 2,
+    "semi": true,
+    "singleQuote": true
   },
   "eslintConfig": {
     "env": {
@@ -28,8 +39,14 @@
       "google"
     ],
     "rules": {
-      "indent": ["error", 2],
-      "arrow-parens": [2, "as-needed"],
+      "indent": [
+        "error",
+        2
+      ],
+      "arrow-parens": [
+        2,
+        "as-needed"
+      ],
       "require-jsdoc": "off",
       "new-cap": "off",
       "guard-for-in": "off",
@@ -48,10 +65,14 @@
   "devDependencies": {
     "eslint": "^5.10.0",
     "eslint-config-google": "^0.11.0",
-    "prettier": "^1.15.3"
+    "husky": "^1.2.0",
+    "jest": "^23.6.0",
+    "prettier": "^1.15.3",
+    "pretty-quick": "^1.8.0"
   },
   "dependencies": {
     "dnssd": "^0.4.1",
-    "portfinder": "^1.0.20"
+    "portfinder": "^1.0.20",
+    "winston": "^3.1.0"
   }
 }

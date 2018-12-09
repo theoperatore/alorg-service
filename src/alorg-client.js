@@ -1,5 +1,17 @@
+// example usage:
+//
+// const alorgClient = require('./alorg-client')();
+//
+// alorgClient
+//   .post('alorg://echo-server/echo', { what: 'is up?' })
+//   .then(response => {
+//     console.log(response);
+//   })
+//   .catch(console.error);
+//
 const http2 = require('http2');
 const dnssd = require('dnssd');
+const log = require('./utils/log').clientLogger;
 
 const {
   HTTP2_HEADER_PATH,
@@ -27,6 +39,7 @@ class AlorgClient {
 
   async request(method, alorgUrl, maybePayload) {
     const { path, url } = await this.resolveService(alorgUrl);
+    log.info(`${method} ${alorgUrl} => ${url} ${path}`);
     return new Promise((resolve, reject) => {
       const client = http2.connect(url);
       const stream = client.request({
@@ -36,7 +49,7 @@ class AlorgClient {
 
       stream.setEncoding('utf8');
       stream.on('response', headers => {
-        console.log('response:', headers[HTTP2_HEADER_STATUS]);
+        log.debug('response:', headers[HTTP2_HEADER_STATUS]);
         let payload = '';
         stream.on('data', chunk => {
           payload += chunk;
@@ -49,10 +62,7 @@ class AlorgClient {
       });
 
       if (method === HTTP2_METHOD_POST) {
-        const payload =
-          typeof maybePayload === 'string'
-            ? maybePayload
-            : JSON.stringify(maybePayload);
+        const payload = typeof maybePayload === 'string' ? maybePayload : JSON.stringify(maybePayload);
         stream.end(Buffer.from(payload));
       }
     });
@@ -67,4 +77,8 @@ class AlorgClient {
   }
 }
 
-module.exports = new AlorgClient();
+function createClient() {
+  return new AlorgClient();
+}
+
+module.exports = createClient;

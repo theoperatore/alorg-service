@@ -1,11 +1,32 @@
-// the consumer needs to define:
-// - service name
-// - any other dnssd things: TXT, etc.
-// - options for http2 server
-// - routes/handler pairs
+// Example usage:
+//
+// const createService = require('./alorg-service');
+//
+// createService('echo-server')
+//   .then(service => {
+//     service.post('/echo', (stream, requestHeaders, callback) => {
+//       stream.setEncoding('utf8');
+//       let payload = '';
+//       stream.on('data', chunk => {
+//         payload += chunk;
+//       });
+//       stream.on('end', () => {
+//         callback(null, payload);
+//       });
+//     });
+//
+//     service.get('/greeting', (stream, requestHeaders, callback) => {
+//       callback(null, 'hello, world');
+//     });
+//
+//     service.listen();
+//   })
+//   .catch(error => console.error('caught error', error));
+
 const http2 = require('http2');
 const dnssd = require('dnssd');
 const portfinder = require('portfinder');
+const log = require('./utils/log').serviceLogger;
 
 const {
   HTTP2_HEADER_PATH,
@@ -25,7 +46,7 @@ async function createService(name) {
   const advert = new dnssd.Advertisement(alorgType, port, { name });
 
   // do some custom error logging...
-  server.on('error', err => console.error(err));
+  server.on('error', err => log.error(err));
 
   // handle requests and route to the correct handler
   server.on('stream', (stream, requestHeaders) => {
@@ -33,15 +54,13 @@ async function createService(name) {
     const method = requestHeaders[HTTP2_HEADER_METHOD];
 
     // log the request
-    console.log(`[${method}] ${path}`);
+    log.info(`[${method}] ${path}`);
 
     function callback(error, payload) {
       if (error) {
         const { status, message } = error;
         stream.respond({ [HTTP2_HEADER_STATUS]: status || 500 });
-        const errorPayloadBuffer = Buffer.from(
-          typeof message === 'string' ? message : JSON.stringify(message)
-        );
+        const errorPayloadBuffer = Buffer.from(typeof message === 'string' ? message : JSON.stringify(message));
         stream.end(errorPayloadBuffer);
         return;
       }
@@ -51,9 +70,7 @@ async function createService(name) {
         return;
       }
 
-      const payloadBuffer = Buffer.from(
-        typeof payload === 'string' ? payload : JSON.stringify(payload)
-      );
+      const payloadBuffer = Buffer.from(typeof payload === 'string' ? payload : JSON.stringify(payload));
       stream.respond({
         [HTTP2_HEADER_STATUS]: 200,
         [HTTP2_HEADER_CONTENT_LENGTH]: payloadBuffer.length,
@@ -66,7 +83,8 @@ async function createService(name) {
       handler(stream, requestHeaders, callback);
       return;
     }
-    console.error('no handler for:', `${method}:${path}`);
+
+    log.warn(`no handler for: ${method}:${path}`);
   });
 
   return {
@@ -74,7 +92,7 @@ async function createService(name) {
       const route = `${method}:${path}`;
       routes[route] = handler;
 
-      console.log('registered route:', route);
+      log.info(`registered route: ${route}`);
       return true;
     },
     get(path, handler) {
@@ -86,8 +104,8 @@ async function createService(name) {
     listen() {
       advert.start();
       server.listen(port);
-      console.log('advertising:', `${name}._alorg._tcp.local.`);
-      console.log('server binding to port:', port);
+      log.info(`advertising: ${name}._alorg._tcp.local.`);
+      log.info(`server binding to port: ${port}`);
     },
     server,
   };
