@@ -6,5 +6,47 @@
   "repository": "git@github.com:theoperatore/alorg-service.git",
   "author": "Alex Petersen <theoperatore@gmail.com>",
   "license": "MIT",
-  "private": true
+  "private": true,
+  "engines": {
+    "node": ">=10.14.1"
+  },
+  "scripts": {
+    "postinstall": "yarn audit",
+    "lint": "eslint ."
+  },
+  "eslintConfig": {
+    "env": {
+      "node": true
+    },
+    "parserOptions": {
+      "ecmaVersion": 6
+    },
+    "extends": [
+      "eslint:recommended",
+      "google"
+    ],
+    "rules": {
+      "require-jsdoc": "off",
+      "new-cap": "off",
+      "guard-for-in": "off",
+      "object-curly-spacing": [
+        "error",
+        "always"
+      ],
+      "max-len": [
+        "error",
+        {
+          "code": 120
+        }
+      ]
+    }
+  },
+  "devDependencies": {
+    "eslint": "^5.10.0",
+    "eslint-config-google": "^0.11.0"
+  },
+  "dependencies": {
+    "dnssd": "^0.4.1",
+    "portfinder": "^1.0.20"
+  }
 }
