@@ -85,6 +85,7 @@ async function createService(name) {
     }
 
     log.warn(`no handler for: ${method}:${path}`);
+    stream.respond({ [HTTP2_HEADER_STATUS]: 404 }, { endStream: true });
   });
 
   return {
