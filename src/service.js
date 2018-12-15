@@ -1,28 +1,3 @@
-// Example usage:
-//
-// const createService = require('./alorg-service');
-//
-// createService('echo-server')
-//   .then(service => {
-//     service.post('/echo', (stream, requestHeaders, callback) => {
-//       stream.setEncoding('utf8');
-//       let payload = '';
-//       stream.on('data', chunk => {
-//         payload += chunk;
-//       });
-//       stream.on('end', () => {
-//         callback(null, payload);
-//       });
-//     });
-//
-//     service.get('/greeting', (stream, requestHeaders, callback) => {
-//       callback(null, 'hello, world');
-//     });
-//
-//     service.listen();
-//   })
-//   .catch(error => console.error('caught error', error));
-
 const http2 = require('http2');
 const dnssd = require('dnssd');
 const portfinder = require('portfinder');
@@ -37,15 +12,14 @@ const {
   HTTP2_METHOD_GET,
 } = http2.constants;
 
-const alorgType = dnssd.tcp('_alorg');
-const server = http2.createServer();
+function createService(name) {
+  const alorgType = dnssd.tcp('_alorg');
+  const server = http2.createServer();
 
-async function createService(name) {
   const routes = {};
-  const port = await portfinder.getPortPromise();
-  const advert = new dnssd.Advertisement(alorgType, port, { name });
 
   // do some custom error logging...
+  server.on('sessionError', err => log.error(err));
   server.on('error', err => log.error(err));
 
   // handle requests and route to the correct handler
@@ -53,43 +27,56 @@ async function createService(name) {
     const path = requestHeaders[HTTP2_HEADER_PATH];
     const method = requestHeaders[HTTP2_HEADER_METHOD];
 
-    // log the request
-    log.info(`[${method}] ${path}`);
-
     function callback(error, payload) {
       if (error) {
         const { status, message } = error;
-        stream.respond({ [HTTP2_HEADER_STATUS]: status || 500 });
+        const outStatus = status || 500;
+        stream.respond({ [HTTP2_HEADER_STATUS]: outStatus });
         const errorPayloadBuffer = Buffer.from(typeof message === 'string' ? message : JSON.stringify(message));
         stream.end(errorPayloadBuffer);
+
+        log.info(`[${method}] ${path} ${outStatus}`);
         return;
       }
 
       if (!payload) {
         stream.respond({ [HTTP2_HEADER_STATUS]: 204 }, { endStream: true });
+        log.info(`[${method}] ${path} ${204}`);
         return;
       }
 
-      const payloadBuffer = Buffer.from(typeof payload === 'string' ? payload : JSON.stringify(payload));
+      const out = typeof payload === 'string' ? payload : JSON.stringify(payload);
+      const payloadBuffer = Buffer.from(out);
+
       stream.respond({
         [HTTP2_HEADER_STATUS]: 200,
         [HTTP2_HEADER_CONTENT_LENGTH]: payloadBuffer.length,
       });
       stream.end(payloadBuffer);
+      log.info(`[${method}] ${path} ${200}`);
     }
 
     const handler = routes[`${method}:${path}`];
     if (handler) {
-      handler(stream, requestHeaders, callback);
+      // attach parsed headers for this request
+      // so users can use them;
+      stream.request = {
+        // TODO: allow for path params and inject them here
+        //       need to find a better way to register routes...
+        // params: {},
+        headers: requestHeaders,
+      };
+
+      handler(stream, callback);
       return;
     }
 
-    log.warn(`no handler for: ${method}:${path}`);
+    log.info(`[${method}] ${path} ${404}`);
     stream.respond({ [HTTP2_HEADER_STATUS]: 404 }, { endStream: true });
   });
 
   return {
-    handle(method, path, handler) {
+    request(method, path, handler) {
       const route = `${method}:${path}`;
       routes[route] = handler;
 
@@ -97,16 +84,19 @@ async function createService(name) {
       return true;
     },
     get(path, handler) {
-      return this.handle(HTTP2_METHOD_GET, path, handler);
+      return this.request(HTTP2_METHOD_GET, path, handler);
     },
     post(path, handler) {
-      return this.handle(HTTP2_METHOD_POST, path, handler);
+      return this.request(HTTP2_METHOD_POST, path, handler);
     },
-    listen() {
+    async listen(cb) {
+      const port = await portfinder.getPortPromise();
+      const advert = new dnssd.Advertisement(alorgType, port, { name });
       advert.start();
       server.listen(port);
       log.info(`advertising: ${name}._alorg._tcp.local.`);
       log.info(`server binding to port: ${port}`);
+      cb && typeof cb === 'function' && cb();
     },
     server,
   };

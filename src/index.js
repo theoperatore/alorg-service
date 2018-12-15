@@ -1,4 +1,4 @@
 module.exports = {
-  createService: require('./alorg-service'),
-  createClient: require('./alorg-client'),
+  createService: require('./service'),
+  createClient: require('./client'),
 };

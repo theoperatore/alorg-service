@@ -7,7 +7,7 @@
   "author": "Alex Petersen <theoperatore@gmail.com>",
   "license": "MIT",
   "engines": {
-    "node": ">=10.14.1"
+    "node": ">=10.14.2"
   },
   "scripts": {
     "postinstall": "yarn audit",

@@ -12,7 +12,7 @@ yarn add @theoperatore/alorg-service
 
 | node      |
 | --------- |
-| `10.14.1` |
+| `10.14.2` |
 
 ### Basic service usage
 
@@ -20,29 +20,33 @@ yarn add @theoperatore/alorg-service
 const alorg = require('@theoperatore/alorg-service');
 
 const serviceName = 'greeting-service';
-alorg.createService(serviceName).then(service => {
-  // define a route to match GET requests
-  service.get('/say-hello', (stream, headers, callback) => {
-    callback(null, 'hello world');
-  });
+const service = alorg.createService(serviceName);
 
-  // define a route to match POST requests
-  service.post('/echo', (stream, headers, callback) => {
-    let payload = '';
-    stream.setEncoding('utf8');
+// define a route to match GET requests
+service.get('/say-hello', (stream, callback) => {
+  // log the http2 request headers
+  console.log(stream.request.headers);
 
-    stream.on('data', chunk => {
-      payload += chunk;
-    });
-
-    stream.on('end', () => {
-      callback(null, payload);
-    });
-  });
-
-  // call this to start listening and broadcasting
-  service.listen();
+  // respond with a payload body; no errors
+  callback(null, 'hello world');
 });
+
+// define a route to match POST requests
+service.post('/echo', (stream, callback) => {
+  let payload = '';
+  stream.setEncoding('utf8');
+
+  stream.on('data', chunk => {
+    payload += chunk;
+  });
+
+  stream.on('end', () => {
+    callback(null, payload);
+  });
+});
+
+// call this to start listening and broadcasting
+service.listen();
 ```
 
 The `stream` object in the handler is the [NodeJS ServerHttp2Session](https://nodejs.org/docs/latest-v10.x/api/http2.html#http2_class_serverhttp2session) so do whatever you need to to parse any payloads or stream any data. All you need to do is invoke `callback(null, payload)` to end the request stream.
