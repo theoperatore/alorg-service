@@ -1,7 +1,12 @@
-const http2 = require('http2');
-const dnssd = require('dnssd');
-const portfinder = require('portfinder');
-const log = require('./utils/log').serviceLogger;
+import * as http2 from 'http2';
+import * as dnssd from 'dnssd';
+import * as portfinder from 'portfinder';
+import { serviceLogger as log } from './utils/log';
+
+type RequestHandlerError = { status: number; message: string };
+type RequestHandlerCallback = (error: RequestHandlerError, payload?: string | number | object) => void;
+type RequestStreamObject = { stream: http2.ServerHttp2Stream; headers: object };
+type RequestHandler = (request: RequestStreamObject, callback: RequestHandlerCallback) => void;
 
 const {
   HTTP2_HEADER_PATH,
@@ -12,7 +17,7 @@ const {
   HTTP2_METHOD_GET,
 } = http2.constants;
 
-function createService(name) {
+function createService(name: string) {
   const alorgType = dnssd.tcp('_alorg');
   const server = http2.createServer();
 
@@ -27,7 +32,7 @@ function createService(name) {
     const path = requestHeaders[HTTP2_HEADER_PATH];
     const method = requestHeaders[HTTP2_HEADER_METHOD];
 
-    function callback(error, payload) {
+    function callback(error: RequestHandlerError, payload?: string | number | object) {
       if (error) {
         const { status, message } = error;
         const outStatus = status || 500;
@@ -56,18 +61,19 @@ function createService(name) {
       log.info(`[${method}] ${path} ${200}`);
     }
 
-    const handler = routes[`${method}:${path}`];
+    const handler: RequestHandler = routes[`${method}:${path}`];
     if (handler) {
       // attach parsed headers for this request
       // so users can use them;
-      stream.request = {
+      const request: RequestStreamObject = {
+        stream,
         // TODO: allow for path params and inject them here
         //       need to find a better way to register routes...
         // params: {},
         headers: requestHeaders,
       };
 
-      handler(stream, callback);
+      handler(request, callback);
       return;
     }
 
@@ -76,20 +82,20 @@ function createService(name) {
   });
 
   return {
-    request(method, path, handler) {
+    request(method: string, path: string, handler: RequestHandler): boolean {
       const route = `${method}:${path}`;
       routes[route] = handler;
 
       log.info(`registered route: ${route}`);
       return true;
     },
-    get(path, handler) {
+    get(path: string, handler: RequestHandler): boolean {
       return this.request(HTTP2_METHOD_GET, path, handler);
     },
-    post(path, handler) {
+    post(path: string, handler: RequestHandler): boolean {
       return this.request(HTTP2_METHOD_POST, path, handler);
     },
-    async listen(cb) {
+    async listen(cb?: () => any): Promise<void> {
       const port = await portfinder.getPortPromise();
       const advert = new dnssd.Advertisement(alorgType, port, { name });
       advert.start();

@@ -2,7 +2,7 @@
   "name": "@theoperatore/alorg-service",
   "version": "2.0.0",
   "description": "http/2 + mDNS for zeroconf microservices running within the same local network",
-  "main": "src/index.js",
+  "main": "dist/service.js",
   "repository": "git@github.com:theoperatore/alorg-service.git",
   "author": "Alex Petersen <theoperatore@gmail.com>",
   "license": "MIT",
@@ -10,6 +10,9 @@
     "node": ">=10.14.2"
   },
   "scripts": {
+    "build": "tsc",
+    "demo:server": "ts-node src/demos/server.ts",
+    "demo:client": "ts-node src/demos/client.ts",
     "postinstall": "yarn audit",
     "lint": "eslint ."
   },
@@ -62,12 +65,16 @@
     }
   },
   "devDependencies": {
+    "@types/dnssd": "^0.4.1",
+    "@types/node": "^10.12.15",
     "eslint": "^5.10.0",
     "eslint-config-google": "^0.11.0",
     "husky": "^1.2.0",
     "jest": "^23.6.0",
     "prettier": "^1.15.3",
-    "pretty-quick": "^1.8.0"
+    "pretty-quick": "^1.8.0",
+    "ts-node": "^7.0.1",
+    "typescript": "^3.2.2"
   },
   "dependencies": {
     "dnssd": "^0.4.1",

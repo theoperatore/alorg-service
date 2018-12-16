@@ -2,7 +2,7 @@ const winston = require('winston');
 
 const formatFn = info => `${info.level} ${info.label} ${info.timestamp} ${info.message}`;
 
-const serviceLogger = winston.createLogger({
+export const serviceLogger = winston.createLogger({
   transports: [
     new winston.transports.Console({
       format: winston.format.combine(
@@ -25,7 +25,7 @@ const serviceLogger = winston.createLogger({
   ),
 });
 
-const clientLogger = winston.createLogger({
+export const clientLogger = winston.createLogger({
   transports: [
     new winston.transports.Console({
       format: winston.format.combine(
@@ -47,5 +47,3 @@ const clientLogger = winston.createLogger({
     winston.format.printf(formatFn),
   ),
 });
-
-module.exports = { serviceLogger, clientLogger };
