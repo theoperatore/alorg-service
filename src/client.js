@@ -26,14 +26,19 @@ class AlorgClient {
     }));
   }
 
-  async request(method, alorgUrl, maybePayload) {
+  async request(method, alorgUrl, options = {}, maybePayload) {
     const { path, url } = await this.resolveService(alorgUrl);
     return new Promise((resolve, reject) => {
       const client = http2.connect(url);
-      const stream = client.request({
-        [HTTP2_HEADER_METHOD]: method,
-        [HTTP2_HEADER_PATH]: path,
-      });
+      const requestOptions = Object.assign(
+        {},
+        {
+          [HTTP2_HEADER_METHOD]: method,
+          [HTTP2_HEADER_PATH]: path,
+        },
+        options,
+      );
+      const stream = client.request(requestOptions);
 
       stream.setEncoding('utf8');
       stream.on('response', headers => {
@@ -50,19 +55,19 @@ class AlorgClient {
         });
       });
 
-      if (method === HTTP2_METHOD_POST) {
+      if (maybePayload) {
         const payload = typeof maybePayload === 'string' ? maybePayload : JSON.stringify(maybePayload);
         stream.end(Buffer.from(payload));
       }
     });
   }
 
-  get(path, maybePayload) {
-    return this.request(HTTP2_METHOD_GET, path, maybePayload);
+  get(path, options = {}, maybePayload) {
+    return this.request(HTTP2_METHOD_GET, path, options, maybePayload);
   }
 
-  post(path, maybePayload) {
-    return this.request(HTTP2_METHOD_POST, path, maybePayload);
+  post(path, options = {}, maybePayload) {
+    return this.request(HTTP2_METHOD_POST, path, options, maybePayload);
   }
 }
 
