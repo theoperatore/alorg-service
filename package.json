@@ -1,6 +1,6 @@
 {
   "name": "@theoperatore/alorg-service",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "http/2 + mDNS for zeroconf microservices running within the same local network",
   "main": "src/index.js",
   "repository": "git@github.com:theoperatore/alorg-service.git",
@@ -10,7 +10,6 @@
     "node": ">=10.14.2"
   },
   "scripts": {
-    "postinstall": "yarn audit",
     "lint": "eslint ."
   },
   "husky": {
